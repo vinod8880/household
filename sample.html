@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Household builder</title>
+        <style>
+        .household-builder{
+        	text-align: center;
+        	float: left;
+        	padding-left: 10px;
+        	background-color: cyan;
+        	
+        }
+            .debug {
+                font-family: monospace;
+                border: 1px solid black;
+                padding: 10px;
+                display: none;
+            }
+			.hidden {
+				display: none
+			}
+			table {
+				border-collapse: collapse;
+			}
+			table thead th {
+				width: 25%
+			}
+			table, th, td {
+			   border: 1px solid black;
+			}
+			.error {
+				font-size: 12px;
+				color: #f00
+			}
+        </style>
+    </head>
+    <body>
+    <div class="household-builder">
+        <h1>Household builder</h1>
+        <div class="builder">
+            <ol class="household"></ol>
+            <form>
+                <div>
+                    <label>Age
+                        <input type="text" name="age">
+						<p class="error hidden">Please enter a valid value.</p>
+                    </label>
+                </div>
+                <div>
+                    <label>Relationship
+                        <select name="rel">
+                            <option value="">---</option>
+                            <option value="self">Self</option>
+                            <option value="spouse">Spouse</option>
+                            <option value="child">Child</option>
+                            <option value="parent">Parent</option>
+                            <option value="grandparent">Grandparent</option>
+                            <option value="other">Other</option>
+                        </select>
+						<p class="error hidden">Please select a value.</p>
+                    </label>
+                </div>
+                <div>
+                    <label>Smoker?
+                        <input type="checkbox" name="smoker">
+                    </label>
+                </div>
+                <div>
+                    <button class="add">add</button>
+                </div>
+                <div>
+                    <button type="submit">submit</button>
+                </div>
+            </form>
+			<div class="household-list-container">
+				<table class="household-list">
+					<thead>
+						<tr>
+							<th>Age</th>
+							<th>Relationship</th>
+							<th>Smoker</th>
+							<th>Action</th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+			</div>
+        </div>
+        <pre class="debug"></pre>
+        </div>
+        <script>
+            // your code goes here ...
+			var HouseholdBuilder = (function(){
+				var pub = {
+					initialize: function(options) {
+						pvt.init()
+					}
+				}, pvt = {
+					counter: 0,
+					data: [],
+					init: function() {
+						pvt.form = document.forms[0];
+						
+						pvt.age = document.getElementsByName('age')[0];
+						pvt.rel = document.getElementsByName('rel')[0];
+						pvt.smoker = document.getElementsByName('smoker')[0];
+						
+						
+						pvt.add = document.getElementsByClassName('add')[0];
+						pvt.debug = document.getElementsByClassName('debug')[0];
+						
+						pvt.householdListBody = document.querySelectorAll('.household-list tbody')[0]
+						
+						pvt.bindHandlers()
+					},
+					validateFields: function() {
+						var preventSubmission = false;
+						if(pvt.age.value === '' || pvt.age.value === 0) {
+							pvt.age.nextElementSibling.classList.remove('hidden')
+							preventSubmission = true
+						} else {
+							pvt.age.nextElementSibling.classList.add('hidden')
+						}
+						if(pvt.rel.value === '') {
+							pvt.rel.nextElementSibling.classList.remove('hidden')
+							preventSubmission = true
+						} else {
+							pvt.rel.nextElementSibling.classList.add('hidden')
+						}
+						return preventSubmission
+					},
+					updateList: function(obj) {
+						var props = ['age', 'relationship', 'smoker', 'action'], newCell, newText,
+							newRow = pvt.householdListBody.insertRow(), value, deleteBtn;
+
+						for(var i = 0; i < props.length; i++) {
+							newCell = newRow.insertCell(i);
+							value = obj[props[i]];
+							if(typeof value === 'undefined') {
+								newText = document.createElement("div");
+								deleteBtn = document.createElement("button");
+								deleteBtn.innerHTML = 'Delete';
+								deleteBtn.id = 'delete';
+								deleteBtn.className = 'action';
+								deleteBtn.setAttribute('data-index', pvt.counter);
+								
+								newText.appendChild(deleteBtn)
+							} else {
+								newText = document.createTextNode(value);
+							}
+							newCell.appendChild(newText);
+						}
+					},
+					deleteRow: function(index, actualIndex) {
+						pvt.householdListBody.deleteRow(index);
+						for(var i = 0; i < pvt.data.length; i++) {
+							if(pvt.data[i].index === actualIndex) {
+								pvt.data.splice(i, 1);
+								break
+							}
+						}
+					},
+					bindHandlers: function() {
+						pvt.form.addEventListener('submit', function(event) {
+							event.preventDefault;
+							event.returnValue = false;
+							pvt.debug.style.display = 'block';
+							pvt.debug.innerHTML = JSON.stringify({data: pvt.data})
+							return false
+						}, false);
+						
+						pvt.add.addEventListener('click', function(event) {
+							event.preventDefault;
+							event.returnValue = false;
+							if(!pvt.validateFields()) {
+								var obj = {
+									index: pvt.counter,
+									age: pvt.age.value,
+									relationship: pvt.rel.value,
+									smoker: pvt.smoker.checked
+								}
+								pvt.data.push(obj);
+								pvt.updateList(obj);
+								pvt.counter++;
+							}
+							return false
+						}, false);
+						
+						document.body.addEventListener('click', function(event) {
+							var elem = event.target ? event.target : event.srcElement, parent, nodeList, index;
+							
+							if(elem.className.indexOf('action') > -1) {
+								parent = elem.parentElement;
+								nodeList = Array.prototype.slice.call(pvt.householdListBody.children);
+								
+								while(parent.tagName !== 'TR') {
+									parent = parent.parentElement
+								}
+								index = nodeList.indexOf(parent);
+								actualIndex = parseInt(elem.getAttribute('data-index'));
+								switch(elem.id) {
+									case 'delete':
+										pvt.deleteRow(index, actualIndex)
+										break
+								}
+							}
+						}, false);
+					}
+				}
+				
+				return pub
+			}());
+
+			(function(){
+				HouseholdBuilder.initialize()
+			}())
+        </script>
+    </body>
+</html>
